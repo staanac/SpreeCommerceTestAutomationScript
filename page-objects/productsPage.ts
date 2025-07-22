@@ -14,7 +14,6 @@ export class ProductsPage {
 
         // Selecting product under Shop All
         await this.page.getByRole('link', { name: 'Checkered Shirt $' }).nth(0).click();
-        //await this.page.getByRole('heading', { name: productName }).filter({ hasNotText: 'New arrivals Explore' }).click();
 
     }
 }

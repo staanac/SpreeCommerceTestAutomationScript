@@ -25,22 +25,29 @@ test.beforeEach(async ({ page }) => {
 
 test('Validation where the user selected next day sa delivery method.', async ({ page }) => {
 
-    // Populating the Sign In page
+    // Page objects:
     const signInPage = new SignInPage(page);
+    const productPage = new ProductsPage(page);
+    const myCartPage = new MyCartPage(page);
+    const checkoutPage = new CheckOutPage(page);
+    const mainPage = new MainPage(page);
+    const myAccountPage = new MyAccountPage(page);
+
+
+    // Populating the Sign In page
     await signInPage.populateSignInPage(testData.existingUserAccountWithCorrectCredentials.username, testData.newUserAccountWithValidCredential.password);
 
     // Assertion: To ensure that the user was signed in successfully 
     await expect(page.getByText('Signed in successfully.')).toBeVisible();
 
     // Updating product under Shop All to the My Cart
-    const productPage = new ProductsPage(page);
+
     await productPage.addingProductToCartUnderShopAll(testData.productDetails.productName);
 
     // Assertion: To ensure that selected product was added to My Cart
     await expect(page.getByRole('listitem').filter({ hasText: testData.productDetails.productName })).toBeVisible();
 
     // Updating order details in My Cart 
-    const myCartPage = new MyCartPage(page);
     await myCartPage.updatingProductDetailsInMyCart(testData.productDetails.productSize, testData.productDetails.productColor,
         testData.productDetails.productQuantity);
 
@@ -68,7 +75,6 @@ test('Validation where the user selected next day sa delivery method.', async ({
 
     // Assertion: To ensure that the correct price was reflected on the cart
     const productPrice = await page.locator(".cart-line-item .ml-3 .mb-2").textContent();
-    console.log(productPrice);
 
     // Assertion: To ensure that the correct product color was reflected on the cart
     const productColorInMyCart = await page.locator(".cart-line-item .ml-3 .flex-wrap .label-container .text-sm").textContent();
@@ -87,10 +93,9 @@ test('Validation where the user selected next day sa delivery method.', async ({
     expect(Number(actualAmountDueInString?.replace(/[^\d.-]/g, ''))).toEqual(expectedTotalAmountDue);
 
     // Proceed to checkout page
-    const checkoutPage = new CheckOutPage(page);
     await checkoutPage.procedToCheckoutPage();
 
-    // Assertion: To check if there is already existing delivery address
+    // Checking if there is already existing delivery address
     await page.waitForTimeout(1500)
     const isDefaultAddressExisting = await page.getByText('This is your default delivery address').isVisible();
     await checkoutPage.populateShippingAddress(isDefaultAddressExisting, testData.shippingDetails.country, testData.shippingDetails.firstName,
@@ -118,46 +123,68 @@ test('Validation where the user selected next day sa delivery method.', async ({
     await checkoutPage.selectDeliveryMethod(testData.shippingDetails.deliveryMethod);
 
     // Assertion: Delivery page
+    // Assertion: To ensure that correct First Name and Last Name was reflected
     await expect(page.getByRole('paragraph').filter({ hasText: `${testData.shippingDetails.firstName} ${testData.shippingDetails.lastName}` })).toBeVisible();
+    // Assertion: To ensure that the correct email address was reflected
     await expect(page.getByRole('paragraph').filter({ hasText: testData.existingUserAccountWithCorrectCredentials.username })).toBeVisible();
+    // Assertion: To ensure that the correct shipping details was reflected
     await expect(page.getByText(`${testData.shippingDetails.firstName} ${testData.shippingDetails.lastName}, ${testData.shippingDetails.streetName}, 
         ${testData.shippingDetails.apartment}, ${testData.shippingDetails.city}, ${testData.shippingDetails.postalCode}, ${testData.shippingDetails.country}`)).toBeVisible();
+    // Assertion: To ensure that the correct product quantity was reflected
     const deliveryPageQuantity = await page.locator("#checkout_line_items .overflow-y-auto .justify-between .mr-5 .rounded-full").textContent();
     expect(Number(deliveryPageQuantity?.replace(/[^\d.-]/g, ''))).toEqual(testData.productDetails.productQuantity);
+    // Assertion: To ensure that the correct product name was reflected
     await expect(page.getByRole('paragraph').filter({ hasText: testData.productDetails.productName })).toBeVisible();
+    // Assertion: To ensure that the correct product color was reflected
     await expect(page.getByRole('paragraph').filter({ hasText: `Color: ${testData.productDetails.productColor}` })).toBeVisible();
+    // Assertion: To ensure that the correct product size was reflected
     await expect(page.getByRole('paragraph').filter({ hasText: `Size: ${testData.productDetails.productSize}` })).toBeVisible();
-    const shippingFee = await page.getByRole('listitem').filter({ hasText: testData.shippingDetails.deliveryMethod }).locator('.custom-control .text-right').textContent();
-    const deliveryPageTotalAmount = await page.locator('.justify-between div #summary-order-total').textContent();
+    // Checking if shipping fee is free
     const isShippingFeeFree = await page.getByText('Free').isVisible();
+    // Parsing total amount in delivery page
+    const deliveryPageTotalAmount = await page.locator('.justify-between div #summary-order-total').textContent();
+    // Assertion: To ensure that the correct total amount was reflected
     if (isShippingFeeFree == true)
         expect(Number(deliveryPageTotalAmount?.replace(/[^\d.-]/g, ''))).toEqual(expectedTotalAmountDue);
+    // Parsing shipping fee
+    const shippingFee = await page.getByRole('listitem').filter({ hasText: testData.shippingDetails.deliveryMethod }).locator('.custom-control .text-right').textContent();
 
     // Proceed to Delivery page
     await checkoutPage.proceedToPaymentsPage();
 
-    // Assertion: To check if there is already existing payment
+    // Checking if there is already existing payment
     await page.waitForTimeout(5000)
     const isDefaultPaymentExisting = await page.getByText('Add a new card').isVisible();
-    await checkoutPage.populatePaymentPage(isDefaultPaymentExisting, testData.paymentDetails.cardNumber, testData.paymentDetails.cardExpirationDate, 
+    await checkoutPage.populatePaymentPage(isDefaultPaymentExisting, testData.paymentDetails.cardNumber, testData.paymentDetails.cardExpirationDate,
         testData.paymentDetails.cardCvc);
 
     // Assertion: Payment page
+    // Assertion: To ensure that correct First Name and Last Name was reflected
     await expect(page.getByRole('paragraph').filter({ hasText: `${testData.shippingDetails.firstName} ${testData.shippingDetails.lastName}` })).toBeVisible();
+    // Assertion: To ensure that the correct email was reflected
     await expect(page.getByRole('paragraph').filter({ hasText: testData.existingUserAccountWithCorrectCredentials.username })).toBeVisible();
+    // Assertion: To ensure that the correct shipping details was reflected
     await expect(page.getByText(`${testData.shippingDetails.firstName} ${testData.shippingDetails.lastName}, ${testData.shippingDetails.streetName}, 
         ${testData.shippingDetails.apartment}, ${testData.shippingDetails.city}, ${testData.shippingDetails.postalCode}, ${testData.shippingDetails.country}`)).toBeVisible();
+    // Assertion: To ensure that the correct delivery method was reflected
     await expect(page.getByRole('paragraph').filter({ hasText: testData.shippingDetails.deliveryMethod })).toBeVisible();
+    // Parsing delivery fee
     const paymentPageDeliveryFee = await page.getByRole('paragraph').filter({ hasText: testData.shippingDetails.deliveryMethod }).locator('strong').textContent();
+    // Assertion: To ensure delivery fee was applied
     if (isShippingFeeFree == true)
         expect(Number(paymentPageDeliveryFee?.replace(/[^\d.-]/g, ''))).toEqual(0.00);
     else
         expect(Number(paymentPageDeliveryFee?.replace(/[^\d.-]/g, ''))).toEqual(Number(shippingFee?.replace(/[^\d.-]/g, '')));
+    // Assertion: To ensure that the correct product quantity was reflected
     const paymentPageQuantity = await page.locator("#checkout_line_items .overflow-y-auto .justify-between .mr-5 .rounded-full").textContent();
     expect(Number(paymentPageQuantity?.replace(/[^\d.-]/g, ''))).toEqual(testData.productDetails.productQuantity);
+    // Assertion: To ensure that the correct product name was reflected
     await expect(page.getByRole('paragraph').filter({ hasText: testData.productDetails.productName })).toBeVisible();
+    // Assertion: To ensure that the correct product color was reflected
     await expect(page.getByRole('paragraph').filter({ hasText: `Color: ${testData.productDetails.productColor}` })).toBeVisible();
+    // Assertion: To ensure that the correct product size was reflected
     await expect(page.getByRole('paragraph').filter({ hasText: `Size: ${testData.productDetails.productSize}` })).toBeVisible();
+    // Assertion: To ensure that the correct total amount was reflected
     const paymentPageTotalAmount = await page.locator('.justify-between div #summary-order-total').textContent();
     if (isShippingFeeFree == true)
         expect(Number(paymentPageTotalAmount?.replace(/[^\d.-]/g, ''))).toEqual(expectedTotalAmountDue);
@@ -167,9 +194,13 @@ test('Validation where the user selected next day sa delivery method.', async ({
 
     // Assertion: Order Summary Page
     await page.waitForTimeout(5000)
+    // Assertion: To ensure that the order was created successfully
     await expect(page.getByRole('heading', { name: 'Your order is confirmed!' })).toBeVisible();
+    // Assertion: To ensure that the order was paid
     await expect(page.getByText('Paid')).toBeVisible();
+    // Assertion: To ensure that the the correct email was reflected
     await expect(page.getByRole('paragraph').filter({ hasText: testData.existingUserAccountWithCorrectCredentials.username })).toBeVisible();
+    // Assertion: To ensure that the correct shipping details was reflected
     await expect(page.getByRole('paragraph').filter({ hasText: `${testData.shippingDetails.firstName} ${testData.shippingDetails.lastName}` }).first()).toBeVisible();
     await expect(page.getByRole('paragraph').filter({ hasText: testData.shippingDetails.streetName }).first()).toBeVisible();
     await expect(page.getByRole('paragraph').filter({ hasText: testData.shippingDetails.apartment }).first()).toBeVisible();
@@ -177,25 +208,28 @@ test('Validation where the user selected next day sa delivery method.', async ({
     await expect(page.getByRole('paragraph').filter({ hasText: testData.shippingDetails.postalCode }).first()).toBeVisible();
     await expect(page.getByRole('paragraph').filter({ hasText: testData.shippingDetails.country }).first()).toBeVisible();
 
-    // Getting Order ID
+    // Parsing Order ID
     const orderId = await page.getByRole('paragraph').filter({ hasText: 'Order' }).locator('strong').textContent();
 
     // Proceed to Main page
-    const mainPage = new MainPage(page);
     await mainPage.navigatingToMainPage();
 
     // Proceed to My Account page
     await mainPage.navigatingToMyAccountPage();
 
     // Retrieve order
-    const myAccountPage = new MyAccountPage(page);
     await myAccountPage.retrieveOrder(orderId!);
 
     // Assertion: Order Details page
+    // Assertion: To ensure that the correct order was retrieve 
     await expect(page.getByRole('heading').filter({ hasText: orderId! })).toBeVisible();
+    // Assertion: To ensure that the correct product name was reflected
     await expect(page.getByRole('link', { name: testData.productDetails.productName })).toBeVisible();
+    // Assertion: To ensure that the correct product color was reflected
     await expect(page.getByText(testData.productDetails.productColor)).toBeVisible();
+    // Assertion: To ensure that the correct product quantity was reflected
     await expect(page.getByText(`Quantity: ${testData.productDetails.productQuantity.toString()}`)).toBeVisible();
+    // Assertion: To ensure that the correct total amount of order was reflected
     const totalAmountDueWithShippingFee = expectedTotalAmountDue + Number(shippingFee?.replace(/[^\d.-]/g, ''))
     if (isShippingFeeFree == true)
         await expect(page.getByText(expectedTotalAmountDue.toString()).nth(1)).toBeVisible();
@@ -209,6 +243,6 @@ test('Validation where the user selected next day sa delivery method.', async ({
     // Logout account
     await myAccountPage.logout();
 
-    // Assertion: To ensure that the user was signed in successfully 
+    // Assertion: To ensure that the user was signed out successfully 
     await expect(page.getByText('Signed out successfully.')).toBeVisible();
 })
